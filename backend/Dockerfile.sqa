@@ -1,0 +1,25 @@
+FROM python:3.8-bullseye
+
+RUN apt-get -y upgrade
+#downloads and installs the most recent packages, replacing any earlier versions that were already on your system
+
+RUN apt-get update
+#The command apt-get update is used to update the package index files on the system, which contain information about available packages and their versions
+
+RUN apt-get install libgdal-dev -y
+RUN export CPLUS_INCLUDE_PATH=/usr/include/gdal
+RUN export C_INCLUDE_PATH=/usr/include/gdal
+
+WORKDIR /app/server
+RUN apt-get install git -y
+RUN apt-get install -y libcairo2 libpango1.0-0 libgdk-pixbuf2.0-0 libffi-dev shared-mime-info
+RUN apt-get install -y python3-opencv  -y
+
+COPY ./server/requirements.txt /app/server/requirements.txt
+RUN pip install --update pip
+RUN pip install -r requirements.txt
+
+ADD ./server .
+
+
+

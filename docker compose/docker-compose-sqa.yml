@@ -1,0 +1,122 @@
+version: '3.3'
+
+services:
+
+
+    backend:
+        container_name: ${BACKEND_CONTAINER_NAME:-tc-backend}
+        build:
+            context: .
+            dockerfile: ./server/Dockerfile.dev
+        ports:
+            - "${BACKEND_PORT_OF_HOST:-8000}:8000"
+
+        volumes:
+            - .:/app/server
+            # - type: bind
+            #   source: ${MEDIA_ROOT:-/storage/media_sqa/tkdc/media/}
+            #   target: /media/tc-media
+            # - type: bind
+            #   source: ${LOG_FILE_DIRECTORY:-/var/www/tkdc_sqa2/log}
+            #   target: /var/log/tc-log
+        links:
+         - memcached:memcached
+         - postgres_db:postgres_db
+         - mongodb:mongodb
+        environment:
+          - MEDIA_ROOT=${MEDIA_ROOT}
+          - LOG_FILE_DIRECTORY=${LOG_FILE_DIRECTORY}
+          - DATABASE_HOST=${DATABASE_HOST}
+          - DATABASE_PORT=${DATABASE_PORT}
+          - DATABASE_OWNER=${DATABASE_OWNER}
+          - DATABASE_PASSWORD=${DATABASE_PASSWORD}
+          - DATABASE_NAME=${DATABASE_NAME}
+          - IS_AWS_CONNECTION=${IS_AWS_CONNECTION}
+          - DATA_COLL_DATABASE_NAME=${DATA_COLL_DATABASE_NAME}
+          - DATA_COLL_AUTH_DATABASE_NAME=${DATA_COLL_AUTH_DATABASE_NAME}
+          - DATA_COLL_DATABASE_OWNER=${DATA_COLL_DATABASE_OWNER}
+          - DATA_COLL_DATABASE_PASSWORD=${DATA_COLL_DATABASE_PASSWORD}
+          - DATA_COLL_DATABASE_HOST=${DATA_COLL_DATABASE_HOST}
+          - DATA_COLL_DATABASE_PORT=${DATA_COLL_DATABASE_PORT}
+          - DJANGO_SUPERUSER_USERNAME=${DJANGO_SUPERUSER_USERNAME}
+          - DJANGO_SUPERUSER_EMAIL=${DJANGO_SUPERUSER_EMAIL}
+          - DJANGO_SUPERUSER_PASSWORD=${DJANGO_SUPERUSER_PASSWORD}
+          - MEMCACHED_URL=memcached:11211
+          - CELERY_BROKER_URL=redis://redis:${REDIS_PORT}
+          - CELERY_RESULT_BACKEND=redis://redis:${REDIS_PORT}
+          - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
+          - DEFAULT_TIME_ZONE=${DEFAULT_TIME_ZONE}
+          - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
+          - SITE_NAME=${SITE_NAME}
+          - ADMIN_SITE_HEADER=${ADMIN_SITE_HEADER}
+          - API_BROWSER_HEADER=${API_BROWSER_HEADER}
+          - LOG_FILE_NAME_PATTERN=${LOG_FILE_NAME_PATTERN}
+          - GENERATED_FILES_PATH=${GENERATED_FILES_PATH}
+          - DEBUG=${DEBUG}
+          - ENABLE_CONSOLE_LOG=${ENABLE_CONSOLE_LOG}
+          - TK_NOTIFICATION_URL=${TK_NOTIFICATION_URL:-http://10.9.0.77:8061/api/notification/external-notification}
+          - TK_SMS_USER=${TK_SMS_USER}
+          - TK_SMS_PASSWORD=${TK_SMS_PASSWORD}
+          - TK_CLIENT_ID=${TK_CLIENT_ID}
+          - TK_MESSAGE_TYPE=${TK_MESSAGE_TYPE}
+          - TK_MESSAGE_VARIABLE_NAME=${TK_MESSAGE_VARIABLE_NAME}
+          - FRONT_END_ADMIN_URL=${FRONT_END_ADMIN_URL}
+          - BASE_URL=${BASE_URL:-backend:8000}
+          - ACCEPTED_FILE_EXTENSIONS=${ACCEPTED_FILE_EXTENSIONS}
+          - MTB_BASE_URL=${MTB_BASE_URL}
+          - MTB_USERNAME=${MTB_USERNAME}
+          - MTB_PASSWORD=${MTB_PASSWORD}
+          - MTB_ORG_CODE=${MTB_ORG_CODE}
+          - MTB_CHANNEL_ID=${MTB_CHANNEL_ID}
+          - MEDIA_SERVER_BASE_URL=${MEDIA_SERVER_BASE_URL}
+          - MEDIA_NID_IMAGE_URL=${MEDIA_NID_IMAGE_URL}
+          - TALLYPAY_BASE_URL=${TALLYPAY_BASE_URL}
+          - EXTERNAL_IMAGE_RESIZE_WIDTH=${EXTERNAL_IMAGE_RESIZE_WIDTH}
+          - EXTERNAL_IMAGE_RESIZE_HEIGHT=${EXTERNAL_IMAGE_RESIZE_HEIGHT}
+          - EXTERNAL_IMAGE_RESIZE_QUALITY=${EXTERNAL_IMAGE_RESIZE_QUALITY}
+          - NID_API=${NID_API:-http://10.9.0.41:8080/nobopay-nid-gateway/nid/gw/internal/v1/ecBasicInfo/getInfo}
+          - NOMINEE_NID_API=${NOMINEE_NID_API:-http://10.9.0.41:8080/nid-crawler/nid/internal/crawl/getNidInfo/PSL}
+          - CELERY_MAX_RETRY=${CELERY_MAX_RETRY}
+          - CELERY_RETRY_TIME_IN_SECONDS=${CELERY_RETRY_TIME_IN_SECONDS}
+        command: >
+          bash -c "cd ./server &&
+          python manage.py runserver 0.0.0.0:8000"
+
+
+
+
+    mongodb:
+     image: mongo:latest
+     container_name: ${MONGODB_CONTAINER_NAME}
+     ports:
+       - "${MONGODB_PORT_OF_HOST}:27017"
+     environment:
+       - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+     volumes:
+       - mongodb_data_container:/data/db
+
+
+
+    frontend:
+      build:
+        context: .
+        dockerfile: ./client/Dockerfile.dev
+      ports:
+       - "${FRONTEND_PORT_OF_HOST:-3000}:3000"
+      container_name: ${FRONTEND_CONTAINER_NAME:-tc-frontend}
+      stdin_open: true
+      volumes:
+       - ./client:/app/client:delegated
+       - /node_modules
+      environment:
+       - REACT_APP_API_PROXY=http://backend:8000
+       - REACT_APP_MEDIA_BASE_URL=${REACT_APP_MEDIA_BASE_URL:-http://backend:8000}
+       - WDS_SOCKET_PORT=${FRONTEND_PORT_OF_HOST:-3000}
+       - CHOKIDAR_USEPOLLING=true
+
+volumes:
+    django_static_volume: {}
+    mongodb_data_container: {}
+    postgres_db_data:
+      driver: local
